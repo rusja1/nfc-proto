@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NFC Prototype — Tag to Content</title>
+  <style>
+    :root { --fg:#111; --muted:#666; --bg:#fff; --border:#e5e5e5; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Apple Color Emoji, Segoe UI Emoji; color:var(--fg); background:var(--bg); }
+    .wrap { max-width: 820px; margin: 0 auto; padding: 24px; }
+    header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-bottom: 16px; border-bottom:1px solid var(--border); }
+    h1 { font-size: 1.4rem; margin:0; }
+    .badge { font-size:.8rem; color:#0a7; border:1px solid #0a7; padding:3px 8px; border-radius:999px; }
+    .card { border:1px solid var(--border); border-radius:12px; padding:16px; margin-top:16px; }
+    .muted { color: var(--muted); }
+    button { font-size:1rem; padding:.7rem 1rem; border-radius:10px; border:1px solid var(--border); background:#f8f8f8; cursor:pointer; }
+    button:active { transform: translateY(1px); }
+    code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+    .pill { display:inline-block; padding:.25rem .6rem; border-radius:999px; background:#f2f2f2; border:1px solid var(--border); font-size:.85rem; }
+    .row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+    .ok { color: #0a7; }
+    .warn { color: #c47a00; }
+    .err { color: #c00; }
+    .big { font-size:1.15rem; }
+    ul { margin: .4rem 0 .4rem 1.25rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>NFC Prototype — Tag to Content</h1>
+      <span class="badge">Demo</span>
+    </header>
+
+    <div class="card">
+      <p class="muted">Open this page by tapping an NFC tag that contains a <span class="mono">?tag=ID</span> in its URL on iPhone, or tap <b>Scan Tag (Android)</b> on Android Chrome.</p>
+      <div class="row" style="margin-top:8px">
+        <button id="scanBtn">🔎 Scan Tag (Android)</button>
+        <span id="support" class="pill">Checking Web NFC support…</span>
+      </div>
+    </div>
+
+    <div class="card" id="output">
+      <div class="muted">Waiting for a tag…</div>
+    </div>
+
+    <div class="card">
+      <div class="big"><b>How it works</b></div>
+      <ul>
+        <li><b>iPhone path:</b> Program your tag with a URL like <span class="mono">https://YOURNAME.github.io/nfc-proto/?tag=FRUIT_APPLE_01</span>. Safari opens this page and shows content for that ID.</li>
+        <li><b>Android path:</b> Press <b>Scan Tag</b> to read a Text/URL payload via Web NFC and map it to content.</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    // 1) Map IDs to content (edit this for your project)
+    const MAP = {
+      "FRUIT_APPLE_01": {
+        title: "Apple",
+        emoji: "🍎",
+        info: ["Category: Fruit", "Vitamin: C", "Fun fact: Apples float because they’re 25% air!"],
+        questions: ["Is an apple a fruit or a vegetable?", "Name one vitamin in apples."]
+      },
+      "VEG_CARROT_07": {
+        title: "Carrot",
+        emoji: "🥕",
+        info: ["Category: Vegetable", "Colour: Orange (usually!)", "Fun fact: They’re a root vegetable."],
+        questions: ["Are carrots a root or a leaf?", "What colour are most carrots?"]
+      },
+      "GRAIN_RICE_02": {
+        title: "Rice",
+        emoji: "🍚",
+        info: ["Category: Grain", "Staple for billions", "Fun fact: There are over 40,000 varieties."],
+        questions: ["Is rice a grain?", "Name a dish made with rice."]
+      }
+    };
+
+    const out = document.getElementById('output');
+    const support = document.getElementById('support');
+    const scanBtn = document.getElementById('scanBtn');
+
+    function renderUnknown(details, raw) {
+      out.innerHTML = `
+        <div class="warn big"><b>Unknown tag</b></div>
+        <p class="muted">ID: <span class="mono">${details}</span></p>
+        <p>Add an entry for this ID to <span class="mono">MAP</span> in the code.</p>
+        ${raw ? `<pre class="card" style="white-space:pre-wrap">${raw}</pre>` : ""}
+      `;
+    }
+
+    function renderItem(id, item, source) {
+      out.innerHTML = `
+        <div class="ok big"><b>${item.emoji} ${item.title}</b></div>
+        <p class="muted">Matched ID: <span class="mono">${id}</span> <span class="pill">Source: ${source}</span></p>
+        <ul>${item.info.map(x => `<li>${x}</li>`).join("")}</ul>
+        <div style="margin-top:.5rem"><b>Questions</b>
+          <ol>${item.questions.map(q => `<li>${q}</li>`).join("")}</ol>
+        </div>
+      `;
+    }
+
+    // 2) iPhone path — read ?tag= from URL
+    const params = new URLSearchParams(location.search);
+    const tagParam = params.get('tag');
+    if (tagParam) {
+      const item = MAP[tagParam];
+      if (item) renderItem(tagParam, item, "URL");
+      else renderUnknown(tagParam);
+    }
+
+    // 3) Android path — Web NFC (optional)
+    (function checkSupport(){
+      if (!('NDEFReader' in window)) {
+        support.textContent = "Web NFC not supported (expected on Android Chrome)";
+        return;
+      }
+      support.textContent = "Web NFC available (Android Chrome)";
+    })();
+
+    scanBtn?.addEventListener('click', async () => {
+      if (!('NDEFReader' in window)) {
+        alert("Web NFC not supported on this device/browser.");
+        return;
+      }
+      try {
+        const reader = new NDEFReader();
+        await reader.scan();
+        out.innerHTML = `<div class="muted">Scanning… tap a tag.</div>`;
+
+        reader.onreading = (event) => {
+          let best = "";
+          for (const record of event.message.records) {
+            try {
+              const decoder = new TextDecoder(record.encoding || "utf-8");
+              if (record.recordType === "text") best = decoder.decode(record.data);
+              if (record.recordType === "url") best = decoder.decode(record.data);
+            } catch (e) {}
+          }
+          const id = best || "(no text/url payload)";
+          const matched = MAP[id];
+          if (matched) renderItem(id, matched, "NFC");
+          else renderUnknown(id, JSON.stringify(event, null, 2));
+        };
+      } catch (err) {
+        out.innerHTML = `<div class="err">Error starting scan: ${err.message || err}</div>`;
+      }
+    });
+  </script>
+</body>
+</html>
