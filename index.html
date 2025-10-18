@@ -2,181 +2,111 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>NFC Demo</title>
 <style>
-  :root{
-    --bg:#0b0b0c; --panel:#111214; --card:#15171a; --text:#e7e9ea; --muted:#9aa0a6; --accent:#10a37f; --line:#23262a;
+  body {
+    margin:0;
+    font-family: system-ui, -apple-system, sans-serif;
+    background: #0b0b0c;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    text-align: center;
+    flex-direction: column;
   }
-  *{box-sizing:border-box}
-  html,body{height:100%}
-  body{
-    margin:0; background:linear-gradient(180deg,#0b0b0c, #0f1114 35%, #0b0b0c);
-    color:var(--text); font:16px/1.5 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
-    display:flex; align-items:center; justify-content:center; padding:24px;
+  h1 {
+    font-size: 2rem;
+    margin-bottom: 1rem;
   }
-  .wrap{width:100%; max-width:820px}
-  .panel{
-    background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:20px;
-    box-shadow:0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.02);
+  img {
+    width: 150px;
+    height: 150px;
+    object-fit: contain;
+    margin-bottom: 1rem;
   }
-  header{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 2px 14px; border-bottom:1px solid var(--line)}
-  h1{margin:0; font-size:18px; font-weight:650; letter-spacing:.2px}
-  .chip{border:1px solid #2a2f35; color:var(--muted); padding:6px 10px; border-radius:999px; font-size:12px}
-  .hero{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; padding:14px 0}
-  .Big{font-size:28px; font-weight:700; letter-spacing:.3px}
-  .sub{color:var(--muted); margin-top:6px}
-  .btn{
-    appearance:none; border:1px solid var(--line); background:#1b1e22; color:var(--text);
-    padding:10px 14px; border-radius:12px; cursor:pointer; font-weight:600;
+  .muted {
+    color: #aaa;
+    font-size: 1rem;
   }
-  .btn:hover{border-color:#2a2f35}
-  .grid{display:grid; grid-template-columns:1fr; gap:14px}
-  .card{
-    background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px;
-    transition:transform .3s ease, box-shadow .3s ease, border-color .3s ease;
+  button {
+    background: #1a1a1d;
+    border: 1px solid #2a2a2e;
+    color: #fff;
+    border-radius: 10px;
+    padding: 0.7rem 1rem;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-top: 2rem;
   }
-  .card.reveal{transform:translateY(-2px); box-shadow:0 10px 35px rgba(0,0,0,.35); border-color:#1f7a66}
-  .muted{color:var(--muted)}
-  .pill{display:inline-block; border:1px solid #2a2f35; border-radius:999px; padding:4px 8px; font-size:12px; color:var(--muted)}
-  .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
-  .icon{width:56px; height:56px; flex:0 0 56px; border-radius:12px; background:#0f1114; border:1px solid var(--line); display:grid; place-items:center}
-  .title{font-weight:700; font-size:18px}
-  .info{margin:.35rem 0 0; color:var(--muted)}
-  .q{margin:.6rem 0 0; padding-left:1.2rem}
-  .ok{color:var(--accent)}
-  .center{display:grid; place-items:center; min-height:120px; text-align:center}
-  .divider{height:1px; background:var(--line); margin:8px 0 0}
-  .small{font-size:12px}
 </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="panel">
-      <header>
-        <h1>Scan • Learn • Play</h1>
-        <span class="chip" id="support">Checking…</span>
-      </header>
 
-      <section class="hero">
-        <div>
-          <div class="Big">Tap a tag.</div>
-          <div class="sub">Simple demo — just two items for now.</div>
-        </div>
-        <button class="btn" id="scanBtn">Scan (Android)</button>
-      </section>
-
-      <div class="grid">
-        <div class="card center" id="output">
-          <div class="muted">Waiting for a tag…</div>
-          <div class="divider"></div>
-          <div class="small muted" style="margin-top:8px">
-            iPhone → open via URL like <code>?tag=FRUIT_APPLE_01</code>
-          </div>
-        </div>
-      </div>
-    </div>
+  <div id="content">
+    <h1>Scan an NFC tag</h1>
+    <p class="muted">Tap your Apple or Carrot tag</p>
+    <button id="scanBtn">Scan (Android)</button>
   </div>
 
-  <!-- Inline SVGs as images -->
-  <svg width="0" height="0" style="position:absolute;left:-9999px;top:-9999px" aria-hidden="true">
-    <symbol id="apple" viewBox="0 0 64 64">
-      <path fill="#e64a4a" d="M48 27c0 13-8 23-16 23S16 40 16 27c0-8 6-12 16-12s16 4 16 12z"/>
-      <path fill="#b43a3a" d="M32 15c-5 0-9 1-12 3 3 2 7 3 12 3s9-1 12-3c-3-2-7-3-12-3z"/>
-      <path fill="#2e7d32" d="M36 12c5-6 11-7 13-7-3 5-8 9-13 10V12z"/>
-      <circle fill="#fff" cx="26" cy="32" r="3" opacity=".15"/>
-    </symbol>
-    <symbol id="carrot" viewBox="0 0 64 64">
-      <path fill="#f7931a" d="M14 50l22-22c3-3 8-3 11 0s3 8 0 11L25 61c-2 2-6 1-8-1s-3-6-1-8z"/>
-      <path fill="#88c057" d="M39 18c-1-6 2-9 8-8-1 6-4 9-8 8zm-6-3c-1-5 1-8 6-7-1 5-3 8-6 7zm12 6c-1-5 2-8 7-6-1 5-4 7-7 6z"/>
-      <path fill="#fff" d="M22 54l16-16" opacity=".15" stroke="#fff" stroke-width="3"/>
-    </symbol>
-  </svg>
-
   <script>
-    // ---- Content map (two items) ----
+    // Tag mapping
     const MAP = {
       "FRUIT_APPLE_01": {
-        title: "Apple",
-        img: '#apple',
-        info: ["Fruit • Vitamin C", "Fun fact: apples float (≈25% air)."],
-        qs: ["Fruit or vegetable?", "Name a vitamin in apples."]
+        name: "Apple",
+        img: "https://upload.wikimedia.org/wikipedia/commons/1/15/Red_Apple.jpg"
       },
       "VEG_CARROT_07": {
-        title: "Carrot",
-        img: '#carrot',
-        info: ["Vegetable • Root", "Fun fact: not all carrots are orange."],
-        qs: ["Root or leaf?", "Typical colour?"]
+        name: "Carrot",
+        img: "https://upload.wikimedia.org/wikipedia/commons/7/7e/Carrots.jpg"
       }
     };
 
-    const out = document.getElementById('output');
-    const support = document.getElementById('support');
+    const content = document.getElementById('content');
 
-    function icon(sym){ return `<div class="icon"><svg width="34" height="34" aria-hidden="true"><use href="${sym}"/></svg></div>`; }
-
-    function renderItem(id, data, source){
-      out.classList.add('reveal');
-      out.innerHTML = `
-        <div class="row">
-          ${icon(data.img)}
-          <div>
-            <div class="title">${data.title}</div>
-            <div class="info muted">${data.info.join(" • ")}</div>
-            <div style="margin-top:6px" class="pill">Source: ${source}</div>
-          </div>
-        </div>
-        <ol class="q">${data.qs.map(q=>`<li>${q}</li>`).join('')}</ol>
-      `;
-    }
-    function renderUnknown(raw){
-      out.classList.remove('reveal');
-      out.innerHTML = `
-        <div class="row">
-          <div class="icon">${/* blank */''}</div>
-          <div>
-            <div class="title">Unknown tag</div>
-            <div class="info muted">${raw}</div>
-          </div>
-        </div>
-      `;
+    function showItem(tag) {
+      const item = MAP[tag];
+      if (item) {
+        content.innerHTML = `
+          <h1>${item.name}</h1>
+          <img src="${item.img}" alt="${item.name}">
+          <p>You just scanned <strong>${item.name}</strong>.</p>
+        `;
+      } else {
+        content.innerHTML = `<h1>Unknown tag</h1><p class="muted">${tag}</p>`;
+      }
     }
 
-    // ---- iPhone path: read ?tag= ----
-    const p = new URLSearchParams(location.search);
-    const tagParam = p.get('tag');
-    if(tagParam){
-      const item = MAP[tagParam];
-      item ? renderItem(tagParam, item, 'URL') : renderUnknown(tagParam);
-    }
+    // Read tag ID from URL (iPhone)
+    const params = new URLSearchParams(location.search);
+    const tagParam = params.get('tag');
+    if (tagParam) showItem(tagParam);
 
-    // ---- Android path: Web NFC (optional) ----
+    // NFC Scan (Android)
     const scanBtn = document.getElementById('scanBtn');
-    if(!('NDEFReader' in window)){
-      support.textContent = "iPhone ready • Android NFC via Chrome";
-    } else {
-      support.textContent = "Web NFC available";
-    }
-
-    scanBtn.addEventListener('click', async ()=>{
-      if(!('NDEFReader' in window)){ alert('Web NFC not supported here.'); return; }
-      try{
-        const r = new NDEFReader(); await r.scan();
-        out.innerHTML = `<div class="muted">Scanning…</div>`;
-        r.onreading = ev=>{
-          let val = "";
-          for(const rec of ev.message.records){
-            try{
-              const dec = new TextDecoder(rec.encoding || "utf-8");
-              if(rec.recordType==='text' || rec.recordType==='url') val = dec.decode(rec.data);
-            }catch{}
+    scanBtn.addEventListener('click', async () => {
+      if (!('NDEFReader' in window)) {
+        alert('Web NFC not supported on this device/browser.');
+        return;
+      }
+      try {
+        const reader = new NDEFReader();
+        await reader.scan();
+        reader.onreading = event => {
+          let text = '';
+          for (const record of event.message.records) {
+            const decoder = new TextDecoder(record.encoding || "utf-8");
+            text = decoder.decode(record.data);
           }
-          const key = val || '(no payload)';
-          const item = MAP[key];
-          item ? renderItem(key, item, 'NFC') : renderUnknown(key);
+          showItem(text);
         };
-      }catch(e){ renderUnknown('Error: '+(e.message||e)); }
+      } catch (err) {
+        alert('NFC scan failed: ' + err);
+      }
     });
   </script>
 </body>
 </html>
+
