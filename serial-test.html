@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ESP32 NFC Tag Test</title>
+  <style>
+    body {
+      font-family: "Poppins", sans-serif;
+      background-color: #f4f2ff;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      gap: 1rem;
+    }
+    h1 {
+      color: #5d3fd3;
+    }
+    button {
+      background-color: #6a5acd;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    button:hover {
+      background-color: #5848c2;
+    }
+    #status {
+      font-weight: 500;
+    }
+    #lastScan {
+      background: white;
+      border-radius: 8px;
+      padding: 12px 20px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      min-width: 200px;
+      text-align: center;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+  <h1>ESP32 NFC Tag Test</h1>
+  <button id="connectBtn">Connect Board</button>
+  <div id="status">Not connected</div>
+  <div id="lastScan">—</div>
+
+  <script>
+    const statusEl = document.getElementById("status");
+    const lastScanEl = document.getElementById("lastScan");
+    const connectBtn = document.getElementById("connectBtn");
+
+    let port, reader;
+
+    async function connectSerial() {
+      try {
+        // 1️⃣ Ask user to pick the ESP32 serial port
+        port = await navigator.serial.requestPort();
+        await port.open({ baudRate: 115200 });
+
+        statusEl.textContent = "Connected. Waiting for scans…";
+
+        // 2️⃣ Decode incoming text
+        const decoder = new TextDecoderStream();
+        const inputDone = port.readable.pipeTo(decoder.writable);
+        const inputStream = decoder.readable;
+
+        // 3️⃣ Read line by line
+        reader = inputStream.getReader();
+        let buffer = "";
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += value;
+          const lines = buffer.split("\n");
+          buffer = lines.pop();
+          for (const raw of lines) {
+            const line = raw.trim();
+            if (!line) continue;
+
+            if (line.startsWith("FOOD:")) {
+              const food = line.slice(5).trim();
+              lastScanEl.textContent = `Scanned: ${food}`;
+            } else if (line.startsWith("UID:")) {
+              const uid = line.slice(4).trim();
+              lastScanEl.textContent = `UID: ${uid}`;
+            } else if (line === "READY") {
+              statusEl.textContent = "Board ready. Tap a tag.";
+            } else if (line.startsWith("ERR:")) {
+              statusEl.textContent = `Error: ${line}`;
+            } else {
+              console.log("[SERIAL]", line);
+            }
+          }
+        }
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "Not connected (permission or port issue).";
+      }
+    }
+
+    connectBtn.addEventListener("click", async () => {
+      if (!("serial" in navigator)) {
+        alert("Web Serial not supported. Use Chrome or Edge over HTTPS.");
+        return;
+      }
+      await connectSerial();
+    });
+  </script>
+</body>
+</html>
