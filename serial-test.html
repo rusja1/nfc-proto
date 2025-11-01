@@ -2,117 +2,229 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ESP32 NFC Tag Test</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NFC Router – ESP32</title>
   <style>
-    body {
-      font-family: "Poppins", sans-serif;
-      background-color: #f4f2ff;
-      color: #333;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      gap: 1rem;
+    :root{
+      --bg:#f4f2ff;
+      --ink:#1f1d2b;
+      --muted:#6b6b8f;
+      --primary:#6a5acd; /* MTU-ish purple */
+      --card:#ffffff;
+      --shadow:0 10px 30px rgba(0,0,0,.10);
+      --radius:18px;
     }
-    h1 {
-      color: #5d3fd3;
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family: Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+      background:var(--bg); color:var(--ink);
+      display:flex; min-height:100vh;
     }
-    button {
-      background-color: #6a5acd;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 10px 20px;
-      font-size: 16px;
-      cursor: pointer;
-      transition: 0.3s;
+    .wrap{
+      margin:auto; width:min(980px,92vw); display:grid; gap:16px;
     }
-    button:hover {
-      background-color: #5848c2;
+    header{
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
     }
-    #status {
-      font-weight: 500;
+    h1{ margin:0; font-weight:800; letter-spacing:.2px; color:var(--primary); }
+    .bar{
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
     }
-    #lastScan {
-      background: white;
-      border-radius: 8px;
-      padding: 12px 20px;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-      min-width: 200px;
-      text-align: center;
-      font-size: 18px;
+    button{
+      background:var(--primary); color:#fff; border:none; border-radius:12px;
+      padding:10px 16px; font-weight:600; cursor:pointer; box-shadow:var(--shadow);
     }
+    button.secondary{ background:#e9e7ff; color:var(--primary); }
+    .status{
+      padding:10px 14px; background:var(--card); border-radius:12px; box-shadow:var(--shadow);
+      color:var(--muted); font-weight:600;
+    }
+    .grid{
+      display:grid; grid-template-columns: 1fr; gap:16px;
+    }
+    .page{
+      display:none; background:var(--card); border-radius:var(--radius);
+      padding:24px; box-shadow:var(--shadow); min-height:240px;
+      animation: fade .22s ease;
+    }
+    .page.active{ display:block; }
+    .pill{
+      display:inline-block; background:#efeefe; color:var(--primary);
+      padding:6px 10px; border-radius:999px; font-size:12px; font-weight:700; letter-spacing:.3px;
+    }
+    .hero{
+      font-size:28px; font-weight:800; margin:10px 0 8px;
+    }
+    .sub{ color:var(--muted); margin:0 0 8px; }
+    .big-emoji{ font-size:56px; line-height:1; }
+    pre{
+      margin:0; padding:14px; border-radius:12px; background:#0f1021; color:#e9e7ff;
+      overflow:auto; font-size:12px;
+    }
+    @keyframes fade{ from{opacity:.6; transform:translateY(4px)} to{opacity:1; transform:none} }
   </style>
 </head>
 <body>
-  <h1>ESP32 NFC Tag Test</h1>
-  <button id="connectBtn">Connect Board</button>
-  <div id="status">Not connected</div>
-  <div id="lastScan">—</div>
+  <div class="wrap">
+    <header>
+      <h1>NFC Router</h1>
+      <div class="bar">
+        <button id="connectBtn">Connect Board</button>
+        <button id="homeBtn" class="secondary">Home</button>
+        <div id="status" class="status">Not connected</div>
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- HOME / DEFAULT -->
+      <section id="page-home" class="page active">
+        <span class="pill">Ready</span>
+        <div class="hero">Scan a tag to switch sections</div>
+        <p class="sub">This page listens for <code>FOOD:&lt;name&gt;</code> or <code>UID:&lt;hex&gt;</code> from the ESP32.</p>
+        <div style="display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(220px,1fr));">
+          <div class="page card" style="display:block">
+            <div class="big-emoji">🍎</div>
+            <div class="hero">Apple</div>
+            <p class="sub">Shows when <b>FOOD:Apple</b> is received.</p>
+          </div>
+          <div class="page card" style="display:block">
+            <div class="big-emoji">🥕</div>
+            <div class="hero">Carrot</div>
+            <p class="sub">Shows when <b>FOOD:Carrot</b> is received.</p>
+          </div>
+          <div class="page card" style="display:block">
+            <div class="big-emoji">🍅</div>
+            <div class="hero">Tomato</div>
+            <p class="sub">Shows when <b>FOOD:Tomato</b> is received.</p>
+          </div>
+        </div>
+        <p class="sub">Last scan:</p>
+        <pre id="log">—</pre>
+      </section>
+
+      <!-- APPLE -->
+      <section id="page-Apple" class="page">
+        <span class="pill">Section</span>
+        <div class="hero">🍎 Apple</div>
+        <p class="sub">Your Apple content goes here (images, tasks, recipe step, quiz, etc.).</p>
+        <pre id="log-apple">Waiting…</pre>
+      </section>
+
+      <!-- CARROT -->
+      <section id="page-Carrot" class="page">
+        <span class="pill">Section</span>
+        <div class="hero">🥕 Carrot</div>
+        <p class="sub">Your Carrot content goes here.</p>
+        <pre id="log-carrot">Waiting…</pre>
+      </section>
+
+      <!-- TOMATO -->
+      <section id="page-Tomato" class="page">
+        <span class="pill">Section</span>
+        <div class="hero">🍅 Tomato</div>
+        <p class="sub">Your Tomato content goes here.</p>
+        <pre id="log-tomato">Waiting…</pre>
+      </section>
+    </div>
+  </div>
 
   <script>
-    const statusEl = document.getElementById("status");
-    const lastScanEl = document.getElementById("lastScan");
-    const connectBtn = document.getElementById("connectBtn");
+    // ========= UI helpers =========
+    const statusEl = document.getElementById('status');
+    const connectBtn = document.getElementById('connectBtn');
+    const homeBtn = document.getElementById('homeBtn');
+    const logHome = document.getElementById('log');
 
+    const pages = {
+      Home: document.getElementById('page-home'),
+      Apple: document.getElementById('page-Apple'),
+      Carrot: document.getElementById('page-Carrot'),
+      Tomato: document.getElementById('page-Tomato'),
+    };
+
+    function showPage(name){
+      Object.values(pages).forEach(p=>p.classList.remove('active'));
+      (pages[name] || pages.Home).classList.add('active');
+    }
+    homeBtn.addEventListener('click', ()=> showPage('Home'));
+
+    // Debounce navigation so one tap doesn't flip multiple times
+    let lastFood = '';
+    let lastSwitch = 0;
+    const SWITCH_COOLDOWN_MS = 900;
+    function routeTo(food){
+      const now = Date.now();
+      if (food === lastFood && (now - lastSwitch) < SWITCH_COOLDOWN_MS) return;
+      lastFood = food; lastSwitch = now;
+      showPage(food);
+      statusEl.textContent = `Showing: ${food}`;
+      // optional: write into page-specific logs
+      const id = `log-${food.toLowerCase()}`;
+      const el = document.getElementById(id);
+      if (el) el.textContent = `Last event: FOOD:${food} @ ${new Date().toLocaleTimeString()}`;
+    }
+
+    // ========= Web Serial =========
     let port, reader;
 
-    async function connectSerial() {
-      try {
-        // 1️⃣ Ask user to pick the ESP32 serial port
+    async function connectSerial(){
+      if (!('serial' in navigator)) {
+        alert('Web Serial not supported. Use Chrome or Edge over HTTPS.');
+        return;
+      }
+      try{
+        // Request and open the serial port
         port = await navigator.serial.requestPort();
         await port.open({ baudRate: 115200 });
+        statusEl.textContent = 'Connected. Waiting for scans…';
 
-        statusEl.textContent = "Connected. Waiting for scans…";
-
-        // 2️⃣ Decode incoming text
+        // Pipe to text decoder and read
         const decoder = new TextDecoderStream();
         const inputDone = port.readable.pipeTo(decoder.writable);
         const inputStream = decoder.readable;
-
-        // 3️⃣ Read line by line
         reader = inputStream.getReader();
-        let buffer = "";
-        while (true) {
-          const { value, done } = await reader.read();
+
+        let buffer = '';
+        while(true){
+          const {value, done} = await reader.read();
           if (done) break;
           buffer += value;
-          const lines = buffer.split("\n");
-          buffer = lines.pop();
-          for (const raw of lines) {
+          const lines = buffer.split('\n');
+          buffer = lines.pop(); // keep incomplete line
+          for (const raw of lines){
             const line = raw.trim();
             if (!line) continue;
 
-            if (line.startsWith("FOOD:")) {
+            // Log to home console
+            logHome.textContent = line;
+
+            // Parse messages from ESP32
+            if (line === 'READY'){
+              statusEl.textContent = 'Board ready. Tap a tag.';
+            } else if (line.startsWith('FOOD:')){
               const food = line.slice(5).trim();
-              lastScanEl.textContent = `Scanned: ${food}`;
-            } else if (line.startsWith("UID:")) {
+              routeTo(food);
+            } else if (line.startsWith('UID:')){
               const uid = line.slice(4).trim();
-              lastScanEl.textContent = `UID: ${uid}`;
-            } else if (line === "READY") {
-              statusEl.textContent = "Board ready. Tap a tag.";
-            } else if (line.startsWith("ERR:")) {
+              statusEl.textContent = `UID: ${uid}`;
+              // Optionally map UID -> food here if your ESP32 prints UID only:
+              // const uidMap = { "04A7B2291C": "Apple", "33F22C7A88": "Carrot" };
+              // const food = uidMap[uid]; if (food) routeTo(food);
+            } else if (line.startsWith('ERR:')){
               statusEl.textContent = `Error: ${line}`;
             } else {
-              console.log("[SERIAL]", line);
+              // For debugging
+              console.log('[SERIAL]', line);
             }
           }
         }
-      } catch (err) {
+      }catch(err){
         console.error(err);
-        statusEl.textContent = "Not connected (permission or port issue).";
+        statusEl.textContent = 'Not connected (permission or port issue).';
       }
     }
 
-    connectBtn.addEventListener("click", async () => {
-      if (!("serial" in navigator)) {
-        alert("Web Serial not supported. Use Chrome or Edge over HTTPS.");
-        return;
-      }
-      await connectSerial();
-    });
+    connectBtn.addEventListener('click', connectSerial);
   </script>
 </body>
 </html>
